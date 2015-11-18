@@ -8,7 +8,7 @@ fp.close()
 
 to = 'tuantv_57@vnu.edu.vn'
 gmail_user = 'tikitaka.yugi@gmail.com'
-gmail_pwd = 'Haianhanh1'
+gmail_pwd = 'Password'
 
 smtpserver = smtplib.SMTP("smtp.gmail.com",587)
 smtpserver.ehlo()
