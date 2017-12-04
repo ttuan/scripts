@@ -1,3 +1,5 @@
+// == Notify my friend when he/she online facebook :v ==
+
 // ==UserScript==
 // @name        BReminder
 // @namespace   natuss
@@ -20,7 +22,7 @@ function makeNoti(){
 
   var notification = new Notification("BReminder",options);
   notification.onclick = function () {
-    window.open("https://www.fb.com/messages/dothihaianhhus");
+    window.open("https://www.fb.com/messages/xxxxxxxx");
   };
 
   var audio = new Audio("http://mp3.zing.vn/xml/load-song/MjAxMSUyRjA5JTJGMjMlMkZkJTJGZiUyRmRmZDBiOTJmZDM4N2Q5NjgyNGQ2NjhjYThhYTQ1MjM4Lm1wMyU3QzM=");

@@ -1,5 +1,6 @@
-import pygame.camera
+# Test take picture with webcam
 
+import pygame.camera
 
 pygame.init()
 pygame.camera.init()

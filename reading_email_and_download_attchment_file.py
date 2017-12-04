@@ -2,6 +2,7 @@ __author__ = 'tuan'
 
 # Be the change you want to see in the world
 
+# Just download attachment file
 import imaplib
 import email
 import os, time

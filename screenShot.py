@@ -1,3 +1,5 @@
+# Screenshot yourscreen, each time in 30 mins.
+
 import pyscreenshot as ImageGrab
 import os.path, time
 

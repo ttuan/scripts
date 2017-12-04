@@ -1,1 +1,3 @@
-# python-tools-for-beginner
+# Ez-Tools
+
+I stored some tools i have written for personal purpose.
