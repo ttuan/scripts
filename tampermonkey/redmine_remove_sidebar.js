@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  try to take over the world!
 // @author       You
-// @match        https://dev.sun-asterisk.com/projects/trill-dely/issues
+// @match        https://dev.sun-asterisk.com/projects/trill-dely/issues*
 // @grant        none
 // ==/UserScript==
 
