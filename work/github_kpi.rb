@@ -1,5 +1,7 @@
 #!/usr/bin/ruby
 
+require "pry"
+require "concurrent-ruby"
 require "date"
 require "json"
 require "net/http"
@@ -63,12 +65,22 @@ class GithubKpi
       puts "Can not fetch pull requests. Please recheck args"
       return
     end
+    promises = []
 
     print "Calculating "
     pull_requests.each do |pull_request|
-      print "."
-      detail_pr = get_pr_detail pull_request[:number]
+      promises.push(
+        Concurrent::Promise.new do
+          get_pr_detail pull_request[:number]
+        end
+      )
+    end
 
+    promises.each(&:execute)
+
+    result = Concurrent::Promise.zip(*promises).value!
+    result.each do |detail_pr|
+      print "."
       @comments += detail_pr[:review_comments]
       @additions += detail_pr[:additions]
       @deletions += detail_pr[:deletions]
