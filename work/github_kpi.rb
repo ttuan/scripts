@@ -31,7 +31,8 @@ class Args
 
   def valid_args?
     if ENV["GITHUB_TOKEN"].nil?
-      puts "ENV['GITHUB_TOKEN'] is missing. You can get token here: https://github.com/settings/tokens/new?scopes=repo&description=Github_KPI_tool"
+      puts "ENV['GITHUB_TOKEN'] is missing. Please set 'export GITHUB_TOKEN=your_github_token' in your ~/.bashrc or ~/.zshrc and reload your shell.\nYou can get token here: https://github.com/settings/tokens/new?scopes=repo&description=Github_KPI_tool"
+      return false
     end
 
     %i(repo from to).each do |arg|
@@ -64,6 +65,7 @@ class GithubKpi
       puts "Can not fetch pull requests. Please recheck args"
       return
     end
+    promises = []
 
     print "Calculating data: #{pull_requests.size} pull requests\n"
 
