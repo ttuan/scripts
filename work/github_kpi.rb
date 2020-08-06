@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
 
+require "thwait"
 require "date"
 require "json"
 require "net/http"
@@ -64,16 +65,27 @@ class GithubKpi
       return
     end
 
-    print "Calculating "
-    pull_requests.each do |pull_request|
-      print "."
-      detail_pr = get_pr_detail pull_request[:number]
+    print "Calculating data: #{pull_requests.size} pull requests\n"
 
-      @comments += detail_pr[:review_comments]
-      @additions += detail_pr[:additions]
-      @deletions += detail_pr[:deletions]
+    results = []
+
+    pull_requests.each_slice(100) do |batch_prs|
+      pull_request_promises = []
+
+      batch_prs.each do |pull_request|
+        pull_request_promises << Thread.new do
+          get_pr_detail pull_request[:number]
+        end
+      end
+
+      ThreadsWait.all_waits(pull_request_promises) do |t|
+        results << t.value
+      end
     end
-    print "\n"
+
+    @comments = results.sum {|h| h[:review_comments]}
+    @additions = results.sum {|h| h[:additions]}
+    @deletions = results.sum {|h| h[:deletions]}
 
     reports = {number_prs: pull_requests.size, comments: @comments, additions: @additions, deletions: @deletions}
     puts reports
@@ -81,12 +93,25 @@ class GithubKpi
 
   private
   def pull_requests
-    @pull_requests ||= merged_pull_requests[:items]
+    @pull_requests ||= merged_pull_requests
   end
 
   def merged_pull_requests
-    url = "https://api.github.com/search/issues?q=repo:#{args[:repo]} type:pr is:merged merged:#{args[:from]}..#{args[:to]}&per_page=200"
-    github_request url
+    n = 1
+    merged_pull_requests = []
+
+    puts "Get list pull requests"
+    loop do
+      url = "https://api.github.com/search/issues?q=repo:#{args[:repo]} type:pr is:merged merged:#{args[:from]}..#{args[:to]}&per_page=100&page=#{n}"
+
+      response = github_request(url)
+      break if response[:items].empty?
+
+      merged_pull_requests += response[:items]
+      n += 1
+    end
+
+    merged_pull_requests
   end
 
   def get_pr_detail number
