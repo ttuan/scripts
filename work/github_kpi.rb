@@ -85,6 +85,11 @@ class GithubKpi
       end
     end
 
+    if results.last[:message]&.match(/API rate limit exceeded for user ID/)
+      puts "You are reached to Github API limition. See more here: https://docs.github.com/en/rest#rate-limiting"
+      return
+    end
+
     @comments = results.sum {|h| h[:review_comments]}
     @additions = results.sum {|h| h[:additions]}
     @deletions = results.sum {|h| h[:deletions]}
@@ -99,18 +104,23 @@ class GithubKpi
   end
 
   def merged_pull_requests
-    n = 1
-    merged_pull_requests = []
-
     puts "Get list pull requests"
-    loop do
+
+    merged_pull_requests = []
+    batch_pr_promises = []
+
+    # Cause this tool use Github search API, the response contains maximum 1000 results
+    (1..10).each do |n|
       url = "https://api.github.com/search/issues?q=repo:#{args[:repo]} type:pr is:merged merged:#{args[:from]}..#{args[:to]}&per_page=100&page=#{n}"
 
-      response = github_request(url)
-      break if response[:items].empty?
+      batch_pr_promises << Thread.new do
+        response = github_request(url)
+        response[:items] || []
+      end
+    end
 
-      merged_pull_requests += response[:items]
-      n += 1
+    ThreadsWait.all_waits(batch_pr_promises ) do |t|
+      merged_pull_requests += t.value
     end
 
     merged_pull_requests
