@@ -3,17 +3,17 @@ require "pry"
 
 class Unipos
   SETTINGS = {
-    email: "tran.van.tuan@framgia.com",
-    password: "sxz7jvXp36KM",
+    email: "YOUR EMAIL",
+    password: "YOUR PASSWORD",
     members: {
-      "nguyen.ngoc.truong": 50,
-      "nguyen.tan.duc": 50,
-      "hoang.minh.tuan": 50,
-      "nguyen.thi.men": 50,
-      "pham.thi.van.anh": 50,
-      "lim.kimhuor": 50,
-      "le.quang.canh": 50,
-      "nguyen.tien.trung": 50
+      "user.a": 50,
+      "user.b": 50,
+      "user.c": 50,
+      "user.d": 50,
+      "user.e": 50,
+      "user.f": 50,
+      "user.g": 50,
+      "user.h": 50
     },
     hash_tags: [
       "#1.AppreciateTeamwork",
