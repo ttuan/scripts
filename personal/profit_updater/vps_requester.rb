@@ -35,7 +35,7 @@ class VpsRequester
     response = Faraday.post(url, body)
     response_body = Oj.load(response.body, symbol_keys: true)
 
-    response_body[:data][:total_equity]
+    response_body[:data][:assets]
   end
 
   private
