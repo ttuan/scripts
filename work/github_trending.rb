@@ -1,6 +1,6 @@
 require 'json'
 require 'faraday'
-require 'slack_mrkdwn'
+require 'slackdown'
 
 class GithubTrending
   TRENDING_URL = {
@@ -31,9 +31,9 @@ class GithubTrending
     }
 
     body = {
-      conversation: "slack_converstaion_id",
-      message: SlackMrkdwn.from(message),
-      ts: "slack_thread_id"
+      conversation: 'slack_conversation_id',
+      message: Slackdown.convert(message),
+      ts: 'slack_thread_id'
     }.to_json
 
     response = Faraday.post('https://oppa.sun-asterisk.vn/forwarder', body, headers)
