@@ -5,7 +5,8 @@ require 'slackdown'
 class GithubTrending
   TRENDING_URL = {
     all: "https://api.github.com/repos/vitalets/github-trending-repos/issues/6/comments",
-    ruby: "https://api.github.com/repos/vitalets/github-trending-repos/issues/9/comments"
+    ruby: "https://api.github.com/repos/vitalets/github-trending-repos/issues/9/comments",
+    python: "https://api.github.com/repos/vitalets/github-trending-repos/issues/7/comments"
   }
 
   def perform
