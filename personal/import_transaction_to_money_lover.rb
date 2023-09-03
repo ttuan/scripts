@@ -62,6 +62,8 @@ class MoneyLoverOperator
     end
 
     # Write ignored transactions to file csv
+    return if ignored_transactions.empty?
+
     File.open("ignored_transactions.csv", "w") do |f|
       ignored_transactions.each do |transaction|
         f.puts "#{transaction[:displayDate]},#{transaction[:amount]},#{transaction[:note]}"
