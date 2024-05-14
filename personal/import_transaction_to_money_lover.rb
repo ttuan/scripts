@@ -5,6 +5,7 @@
 
 require "faraday"
 require "roo"
+require "json"
 
 class MoneyLoverOperator
   attr_accessor :access_token
@@ -63,9 +64,9 @@ class MoneyLoverOperator
           ]
         })
         body = JSON.dump({
-          "pl" => 2,
+          "pl" => 2, # platform
           "data" => data,
-          "av" => 7021,
+          "av" => 7021, # app version
         })
 
         response = Faraday.post(transaction_url, body, headers)
