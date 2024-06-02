@@ -2,12 +2,12 @@ require 'notion-sdk-ruby'
 require 'pony'
 
 class NotionHighlight
-  NOTION_DATABASE_NAME = "Kindle"
+  NOTION_DATABASE_NAME = "Kindle Highlights & Notes"
   HIGHLIGHTS_COUNT = 5
   NOTION_API_TOKEN="your-notion-token"
 
   def run
-    book_blocks = client.blocks.children.list(book["id"])["results"]
+    book_blocks = client.blocks.children.list(book["id"]).data
     choosen_highlights = highlights(book_blocks).sample(HIGHLIGHTS_COUNT)
 
     {
@@ -25,10 +25,10 @@ class NotionHighlight
   def highlights all_book_blocks
     if all_book_blocks.size == 1
       # New format
-      all_book_blocks.first["paragraph"]["text"].map { |block| block["plain_text"] }.join.split("\n\n")
+      all_book_blocks.first.paragraph["rich_text"].map { |block| block["text"]["content"] }.join.split("\n\n")
     else
       # Old format
-      all_highlights = all_book_blocks.map { |b| b["paragraph"]["text"].map { |block| block["plain_text"] }.join("\n") }
+      all_highlights = all_book_blocks.map { |b| b.paragraph["rich_text"].map { |block| block["text"]["content"] }.join("\n") }
 
       if all_highlights.any? { |note| note.start_with?("A highlight is created") }
         all_highlights = all_highlights.each_slice(2).map { |slice| slice.join("\n") }
@@ -39,13 +39,12 @@ class NotionHighlight
   end
 
   def kindle_highlight_page
-    client.databases.list["results"].find do |database|
-      database["title"].first["plain_text"].include?(NOTION_DATABASE_NAME)
-    end
+    results = client.search(query: NOTION_DATABASE_NAME, filter: { property: 'object', value: 'database' })
+    results.data.find { |db| db['title'].any? && db['title'][0]['text']['content'] == NOTION_DATABASE_NAME }
   end
 
   def books
-    @books ||= client.databases.query(kindle_highlight_page["id"], {})["results"]
+    @books ||= client.databases.query(kindle_highlight_page["id"], {}).data
   end
 
   def book
