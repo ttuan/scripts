@@ -17,6 +17,8 @@ ICONS = {
   "USDVND" => "💵",
   "DXY" => "💰",
   "Gold Price" => "🥇",
+  "GD NDT NN" => "🌍",
+  "VNINDEX" => "🇻🇳",
   "VN Gold Prices" => "🏅",
   "Brent Oil" => "⛽",
   "US10Y" => "📊",
@@ -29,6 +31,8 @@ URLS = {
   "Brent Oil" => "https://tradingeconomics.com/commodity/brent-crude-oil",
   "Gold Price" => "https://tradingeconomics.com/commodity/gold",
   "VN Gold Prices" => "https://doji.vn/bang-gia-vang/",
+  "GD NDT NN" => "https://cafef.vn/du-lieu/tracuulichsu2/3/hose/#{Date.today.strftime('%d/%m/%Y')}.chn",
+  "VNINDEX" => "https://dstock.vndirect.com.vn/",
   "DXY" => "https://tradingeconomics.com/united-states/currency",
   "VN1Y" => "https://vn.investing.com/rates-bonds/vietnam-1-year-bond-yield-streaming-chart",
   "USDVND" => "https://tradingeconomics.com/usdvnd:cur",
@@ -69,6 +73,12 @@ class FinancialDataFetcher
     puts "Error fetching #{@url}: #{e}"
     nil
   end
+
+  def convert_to_vnd_billion(amount)
+    billion_vnd = amount.to_f / 1_000_000_000
+    formatted = format('%.2f', billion_vnd)
+    "#{formatted} tỷ"
+  end
 end
 
 class TradingEconomicsFetcher < FinancialDataFetcher
@@ -101,6 +111,7 @@ class Vietnam1YBondFetcher < FinancialDataFetcher
   end
 end
 
+# For ON interest
 class MarketReportFetcher < FinancialDataFetcher
   BASE_URL = "https://vira.org.vn"
 
@@ -182,6 +193,54 @@ class VietnamGoldFetcher < FinancialDataFetcher
   end
 end
 
+class VnindexFetcher < FinancialDataFetcher
+  def fetch_data
+    @url = "https://api-finfo.vndirect.com.vn/v4/vnmarket_prices?sort=date&q=code:VNINDEX"
+    uri = URI.parse(@url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == "https")
+
+    request = Net::HTTP::Get.new(uri.request_uri, HEADERS)
+    response = http.request(request)
+    response_json = JSON.parse(response.body)
+    data = response_json["data"]&.first
+
+    return nil unless data
+
+    close = data["close"]
+    change = data["change"]
+    volume = convert_to_vnd_billion(data["accumulatedVal"])
+    date_time = "#{data['date']} #{data['time']}"
+    parsed_date_time = DateTime.parse(date_time).strftime("%d/%m %H:%M")
+
+    "`#{close}`, Change: `#{change}`, Volume: `#{volume}` (#{parsed_date_time})"
+  end
+end
+
+class ForeignTransactionFetcher < FinancialDataFetcher
+  def fetch_data
+    today = Date.today.strftime("%m/%d/%Y")
+    @url = "https://cafef.vn/du-lieu/Ajax/PageNew/DataGDNN/GDNuocNgoai.ashx?TradeCenter=HOSE&Date=#{today}"
+
+    uri = URI.parse(@url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == "https")
+
+    request = Net::HTTP::Get.new(uri.request_uri, HEADERS)
+    response = http.request(request)
+    response_json = JSON.parse(response.body)
+    data = response_json["Data"]
+
+    buy_value = convert_to_vnd_billion(data["BuyValue"])
+    sell_value = convert_to_vnd_billion(data["SellValue"])
+    diff_value = convert_to_vnd_billion(data["DiffValue"])
+
+    return nil if buy_value == "0.00 tỷ" && sell_value == "0.00 tỷ" && diff_value == "0.00 tỷ"
+
+    "Mua: `#{buy_value}`, Bán: `#{sell_value}`, Dif: `#{diff_value}` (#{Date.today.strftime('%b/%d')})"
+  end
+end
+
 class SlackNotifier
   def initialize(token, channel)
     Slack.configure { |config| config.token = token }
@@ -203,8 +262,7 @@ class SlackNotifier
 
       blocks << { type: "section", text: { type: "mrkdwn", text: text } }
 
-      # Add a divider after "VN Gold Prices"
-      blocks << { type: "divider" } if label == "VN Gold Prices"
+      blocks << { type: "divider" } if label == "VN Gold Prices" or label == "VNINDEX"
     end
 
     @client.chat_postMessage(channel: @channel, blocks: blocks)
@@ -221,6 +279,8 @@ def run_market_update(slack_token, slack_channel)
     "Brent Oil" => TradingEconomicsFetcher.new(URLS["Brent Oil"], "CO1:COM"),
     "Gold Price" => TradingEconomicsFetcher.new(URLS["Gold Price"], "XAUUSD:CUR"),
     "VN Gold Prices" => VietnamGoldFetcher.new(URLS["VN Gold Prices"]),
+    "GD NDT NN" => ForeignTransactionFetcher.new(URLS["GD NDT NN"]),
+    "VNINDEX" => VnindexFetcher.new(URLS["VNINDEX"]),
     "DXY" => TradingEconomicsFetcher.new(URLS["DXY"], "DXY:CUR"),
     "VN1Y" => Vietnam1YBondFetcher.new(URLS["VN1Y"]),
     "USDVND" => TradingEconomicsFetcher.new(URLS["USDVND"], "USDVND:CUR"),
