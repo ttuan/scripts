@@ -88,7 +88,6 @@ class TradingEconomicsFetcher < FinancialDataFetcher
   end
 end
 
-# VN1Y (Vietnam 1-Year Bond Yield)
 class Vietnam1YBondFetcher < FinancialDataFetcher
   def fetch_data
     soup = fetch_soup
@@ -102,7 +101,6 @@ class Vietnam1YBondFetcher < FinancialDataFetcher
   end
 end
 
-# ON on Money Market
 class MarketReportFetcher < FinancialDataFetcher
   BASE_URL = "https://vira.org.vn"
 
@@ -113,17 +111,20 @@ class MarketReportFetcher < FinancialDataFetcher
     today_date = Date.today.strftime("%d/%m/%Y")
     link = nil
 
-    # Find article for today
     soup.css('.story__header').each do |header|
       meta_time = header.at_css('.story__meta time')
+
       if meta_time && meta_time.text.include?(today_date)
-        relative_link = header.at_css('a')['href']
-        link = URI.join(BASE_URL, relative_link).to_s # Convert relative to absolute URL
-        break
+        header_text = header.text.strip
+
+        if header_text.include?("Market Watch")
+          relative_link = header.at_css('a')['href']
+          link = URI.join(BASE_URL, relative_link).to_s
+          break
+        end
       end
     end
 
-    # Fallback to search latest data
     if link.nil?
       puts "Market Watch link not found. Searching by title..."
       row_div = soup.at_css('.row')
@@ -159,7 +160,6 @@ class MarketReportFetcher < FinancialDataFetcher
   end
 end
 
-# Vietnamese gold prices
 class VietnamGoldFetcher < FinancialDataFetcher
   def fetch_data
     soup = fetch_soup(verify: false)
@@ -182,7 +182,6 @@ class VietnamGoldFetcher < FinancialDataFetcher
   end
 end
 
-# Slack Notifier
 class SlackNotifier
   def initialize(token, channel)
     Slack.configure { |config| config.token = token }
@@ -199,7 +198,7 @@ class SlackNotifier
 
       icon = ICONS.fetch(label, "📌")
       url = URLS.fetch(label, "#")
-      linked_label = "<#{url}|#{label}>" # Slack hyperlink format
+      linked_label = "<#{url}|#{label}>"
       text = "#{icon} *#{linked_label}*: #{value}"
 
       blocks << { type: "section", text: { type: "mrkdwn", text: text } }
@@ -215,7 +214,6 @@ class SlackNotifier
   end
 end
 
-# Main execution
 def run_market_update(slack_token, slack_channel)
   fetchers = {
     "US10Y" => TradingEconomicsFetcher.new(URLS["US10Y"], "USGG10YR:IND"),
