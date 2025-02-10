@@ -5,6 +5,7 @@ require 'nokogiri'
 require 'json'
 require 'date'
 require 'slack-ruby-client'
+require 'concurrent-ruby'
 require 'pry'
 
 # Constants
@@ -31,7 +32,7 @@ URLS = {
   "Brent Oil" => "https://tradingeconomics.com/commodity/brent-crude-oil",
   "Gold Price" => "https://tradingeconomics.com/commodity/gold",
   "VN Gold Prices" => "https://doji.vn/bang-gia-vang/",
-  "GD NDT NN" => "https://cafef.vn/du-lieu/tracuulichsu2/3/hose/#{Date.today.strftime('%d/%m/%Y')}.chn",
+  "GD NDT NN" => "https://cafef.vn/du-lieu/tracuulichsu2/3/hose/#{Date.today.strftime("%d/%m/%Y")}.chn",
   "VNINDEX" => "https://dstock.vndirect.com.vn/",
   "DXY" => "https://tradingeconomics.com/united-states/currency",
   "VN1Y" => "https://vn.investing.com/rates-bonds/vietnam-1-year-bond-yield-streaming-chart",
@@ -258,9 +259,17 @@ class SlackNotifier
       icon = ICONS.fetch(label, "📌")
       url = URLS.fetch(label, "#")
       linked_label = "<#{url}|#{label}>"
-      text = "#{icon} *#{linked_label}*: #{value}"
 
+      text = "#{icon} *#{linked_label}*: #{value}"
       blocks << { type: "section", text: { type: "mrkdwn", text: text } }
+
+      if label == "ON" && value.start_with?("http")
+        blocks << {
+          type: "image",
+          image_url: value,
+          alt_text: "Market Report"
+        }
+      end
 
       blocks << { type: "divider" } if label == "VN Gold Prices" or label == "VNINDEX"
     end
@@ -270,6 +279,14 @@ class SlackNotifier
   rescue Slack::Web::Api::Errors::SlackError => e
     puts "Error sending Slack message: #{e.message}"
   end
+end
+
+def fetch_concurrently(fetchers)
+  futures = fetchers.map do |label, fetcher|
+    [label, Concurrent::Future.execute { fetcher.fetch_data }]
+  end.to_h
+
+  futures.transform_values(&:value) # Blocking call to get all values
 end
 
 def run_market_update(slack_token, slack_channel)
@@ -287,7 +304,7 @@ def run_market_update(slack_token, slack_channel)
     "ON" => MarketReportFetcher.new(URLS["ON"])
   }
 
-  market_data = fetchers.transform_values(&:fetch_data)
+  market_data = fetch_concurrently(fetchers)
 
   slack_notifier = SlackNotifier.new(slack_token, slack_channel)
   slack_notifier.send_message(market_data)
